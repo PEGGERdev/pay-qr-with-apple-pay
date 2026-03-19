@@ -37,11 +37,6 @@ services:
         VITE_DEMO_MODE: ${VITE_DEMO_MODE}
         VITE_APP_URL: ${VITE_APP_URL}
     restart: unless-stopped
-    read_only: true
-    tmpfs:
-      - /var/cache/nginx
-      - /var/run
-      - /tmp
     security_opt:
       - no-new-privileges:true
     cap_drop:
