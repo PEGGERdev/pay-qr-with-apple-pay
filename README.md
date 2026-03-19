@@ -63,6 +63,7 @@ npm run dev -- --host 0.0.0.0
 - Use `.env.production.example` as the starting point for real Stripe and Apple Pay deployment.
 - Real Apple Pay requires `DEMO_MODE=false`, valid Stripe keys, HTTPS, and a Stripe-verified domain.
 - Intended public domains: `pegger.dev` for production and `dev.pegger.dev` for development.
+- Deployed frontend builds consume `VITE_*` values from the server env file at image build time.
 
 ## Mobile Device Testing
 
