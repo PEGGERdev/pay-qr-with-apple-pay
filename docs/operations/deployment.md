@@ -14,7 +14,7 @@ Configure these GitHub Actions secrets:
 Recommended path:
 
 - `/opt/pay-qr-with-apple-pay`
-- optional staging path: `/opt/pay-qr-with-apple-pay-dev`
+- staging path: `/opt/pay-qr-with-apple-pay-dev`
 
 Suggested hostnames:
 
@@ -26,10 +26,12 @@ Expected steps on the server:
 
 1. Install Docker and Docker Compose.
 2. Clone the repository into `/opt/pay-qr-with-apple-pay`.
-3. Create `.env.production` with production values.
-4. Optionally create `.env.staging` for `dev.pegger.dev`.
+3. Create `.env.production` with production values in `/opt/pay-qr-with-apple-pay`.
+4. Create `.env.staging` with staging values in `/opt/pay-qr-with-apple-pay-dev`.
 4. Make `deploy/deploy.sh` executable.
 5. Add the Pegger host blocks to the shared Caddy config and reload Caddy.
+6. Use separate Compose project names for prod and staging, for example `payqr-prod` and `payqr-dev`.
+7. Keep separate git checkouts for `main` and `develop`.
 
 ## Reverse Proxy
 

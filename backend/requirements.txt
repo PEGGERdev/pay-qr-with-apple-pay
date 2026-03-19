@@ -7,3 +7,5 @@ pydantic
 httpx
 stripe
 pytest
+pymongo
+mongomock

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json
 import os
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+from pymongo import MongoClient
 
 
 @dataclass
@@ -19,107 +19,107 @@ class DeleteResult:
     deleted_count: int
 
 
-def _storage_root() -> Path:
-    root = Path(os.getenv("APP_STORAGE_DIR") or Path(__file__).resolve().parents[2] / ".data")
-    root.mkdir(parents=True, exist_ok=True)
-    return root
+def mongo_url() -> str:
+    return str(os.getenv("MONGO_URL") or "mongodb://localhost:27017").strip() or "mongodb://localhost:27017"
+
+
+def mongo_server_selection_timeout_ms() -> int:
+    return int(os.getenv("MONGO_SERVER_SELECTION_TIMEOUT_MS") or "2000")
+
+
+def default_db_name() -> str:
+    return str(os.getenv("MONGO_DB") or "pay_qr_with_apple_pay").strip() or "pay_qr_with_apple_pay"
+
+
+def use_mock_db() -> bool:
+    return str(os.getenv("USE_MOCK_DB") or "false").strip().lower() == "true"
+
+
+def create_mongo_client():
+    if use_mock_db():
+        import mongomock
+
+        return mongomock.MongoClient()
+
+    return MongoClient(
+        mongo_url(),
+        serverSelectionTimeoutMS=mongo_server_selection_timeout_ms(),
+    )
+
+
+def ping_mongo() -> bool:
+    client = create_mongo_client()
+    try:
+        client.admin.command("ping")
+        return True
+    finally:
+        client.close()
 
 
 class MongoRepository:
     def __init__(self, collection_name: str, model_type, db_name: str | None = None) -> None:
         self.collection_name = collection_name
         self.model_type = model_type
-        self.db_name = db_name or "payQrWithApplePay"
-        self.file_path = _storage_root() / f"{self.db_name}__{self.collection_name}.json"
-        if not self.file_path.exists():
-            self.file_path.write_text("[]", encoding="utf-8")
+        self.db_name = str(db_name or default_db_name()).strip() or default_db_name()
+        self.client = create_mongo_client()
+        self.db = self.client[self.db_name]
+        self.collection = self.db[collection_name]
+        self.collection.create_index("id", unique=True)
 
-    def _load(self) -> list[dict[str, Any]]:
-        try:
-            raw = self.file_path.read_text(encoding="utf-8")
-            data = json.loads(raw)
-            return data if isinstance(data, list) else []
-        except Exception:
-            return []
-
-    def _save(self, docs: list[dict[str, Any]]) -> None:
-        self.file_path.write_text(json.dumps(docs, default=str, indent=2), encoding="utf-8")
-
-    def _match(self, doc: dict[str, Any], query: dict[str, Any]) -> bool:
-        if not query:
-            return True
-        if "$or" in query:
-            return any(self._match(doc, clause) for clause in query["$or"])
-        for key, value in query.items():
-            if doc.get(key) != value:
-                return False
-        return True
-
-    def insert_one(self, payload: dict[str, Any]) -> str:
-        docs = self._load()
-        doc = dict(payload)
-        doc.setdefault("id", str(uuid4()))
-        docs.append(doc)
-        self._save(docs)
-        return str(doc["id"])
-
-    def create(self, entity) -> str:
+    @staticmethod
+    def _normalize_payload(entity) -> dict[str, Any]:
         if hasattr(entity, "model_dump"):
-            payload = entity.model_dump(by_alias=True)
+            payload = entity.model_dump(by_alias=True, exclude_none=True)
         else:
             payload = dict(entity)
-        return self.insert_one(payload)
+        payload.setdefault("id", str(uuid4()))
+        return payload
 
-    def find_one(self, query: dict[str, Any]) -> dict[str, Any] | None:
-        for doc in self._load():
-            if self._match(doc, query):
-                return doc
-        return None
+    def create(self, entity) -> str:
+        payload = self._normalize_payload(entity)
+        self.collection.insert_one(payload)
+        return str(payload["id"])
 
-    def find_many(self, query: dict[str, Any] | None = None) -> list[dict[str, Any]]:
-        return [doc for doc in self._load() if self._match(doc, query or {})]
-
-    def read_all(self) -> list[dict[str, Any]]:
-        return self._load()
+    def insert_one(self, document: dict[str, Any]) -> str:
+        payload = self._normalize_payload(document)
+        self.collection.insert_one(payload)
+        return str(payload["id"])
 
     def read(self, entity_id: str) -> dict[str, Any] | None:
-        return self.find_one({"id": entity_id})
+        return self.collection.find_one({"id": str(entity_id)})
+
+    def read_all(self) -> list[dict[str, Any]]:
+        return list(self.collection.find())
 
     def update(self, entity_id: str, entity) -> UpdateResult:
-        docs = self._load()
-        for index, doc in enumerate(docs):
-            if str(doc.get("id")) == str(entity_id):
-                payload = entity.model_dump(by_alias=True) if hasattr(entity, "model_dump") else dict(entity)
-                payload["id"] = str(entity_id)
-                docs[index] = payload
-                self._save(docs)
-                return UpdateResult(modified_count=1)
-        return UpdateResult(modified_count=0)
+        payload = self._normalize_payload(entity)
+        payload["id"] = str(entity_id)
+        result = self.collection.update_one({"id": str(entity_id)}, {"$set": payload})
+        return UpdateResult(modified_count=int(result.modified_count))
 
-    def update_fields(self, entity_id: str, fields: dict[str, Any]) -> UpdateResult:
-        docs = self._load()
-        for doc in docs:
-            if str(doc.get("id")) == str(entity_id):
-                doc.update(fields)
-                self._save(docs)
-                return UpdateResult(modified_count=1)
-        return UpdateResult(modified_count=0)
+    def update_fields(self, query_or_entity_id, fields: dict[str, Any], upsert: bool = False) -> UpdateResult:
+        query = query_or_entity_id if isinstance(query_or_entity_id, dict) else {"id": str(query_or_entity_id)}
+        result = self.collection.update_one(query, {"$set": fields}, upsert=upsert)
+        return UpdateResult(modified_count=int(result.modified_count or result.upserted_id is not None))
 
     def delete(self, entity_id: str) -> DeleteResult:
-        docs = self._load()
-        kept = [doc for doc in docs if str(doc.get("id")) != str(entity_id)]
-        if len(kept) == len(docs):
-            return DeleteResult(deleted_count=0)
-        self._save(kept)
-        return DeleteResult(deleted_count=1)
+        result = self.collection.delete_one({"id": str(entity_id)})
+        return DeleteResult(deleted_count=int(result.deleted_count))
 
-    def count_documents(self, query: dict[str, Any] | None = None) -> int:
-        return len(self.find_many(query or {}))
+    def delete_many(self, query: dict[str, Any]) -> DeleteResult:
+        result = self.collection.delete_many(query)
+        return DeleteResult(deleted_count=int(result.deleted_count))
 
+    def find_one(self, query: dict[str, Any], projection: dict[str, int] | None = None):
+        return self.collection.find_one(query, projection)
 
-def ping_mongo() -> bool:
-    try:
-        _storage_root()
-        return True
-    except Exception:
-        return False
+    def find_many(self, query: dict[str, Any] | None = None, projection: dict[str, int] | None = None, limit: int = 0):
+        cursor = self.collection.find(query or {}, projection)
+        if limit and limit > 0:
+            cursor = cursor.limit(int(limit))
+        return list(cursor)
+
+    def count_documents(self, query: dict[str, Any] | None = None, limit: int = 0) -> int:
+        if limit and limit > 0:
+            return self.collection.count_documents(query or {}, limit=int(limit))
+        return self.collection.count_documents(query or {})

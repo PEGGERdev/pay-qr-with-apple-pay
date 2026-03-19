@@ -13,6 +13,8 @@ def isolated_storage(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     monkeypatch.setenv("APP_STORAGE_DIR", str(tmp_path / ".data"))
     monkeypatch.setenv("JWT_SECRET", "test-secret")
     monkeypatch.setenv("DEMO_MODE", "true")
+    monkeypatch.setenv("USE_MOCK_DB", "true")
+    monkeypatch.setenv("MONGO_DB", "test_pay_qr")
     monkeypatch.setenv("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
     monkeypatch.setenv("PUBLIC_APP_URL", "http://testserver")
 
