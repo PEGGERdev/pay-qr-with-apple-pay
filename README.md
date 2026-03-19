@@ -2,6 +2,8 @@
 
 A Vue 3 + FastAPI application for scanning QR invoices and paying them with Apple Pay through Stripe, using SpotOnSight-style backend and frontend composition patterns.
 
+Important: this repository can be made much safer and more production-ready in code, but no software repository alone can guarantee legal compliance. You still need jurisdiction-specific legal review, privacy notices, merchant onboarding, and operating procedures.
+
 ## Structure
 
 The project follows the same high-level separation used in SpotOnSight:
@@ -19,6 +21,8 @@ The project follows the same high-level separation used in SpotOnSight:
 - Mobile-first responsive dashboard with manual paste fallback
 - JWT-based auth flow modeled after SpotOnSight
 - Live Stripe PaymentIntent support with demo fallback for local UI work
+- Production guardrails for JWT, host validation, HTTPS enforcement, and rate limiting
+- CI/CD workflow and containerized deployment assets
 
 ## Local Setup
 
@@ -53,6 +57,13 @@ cd frontend
 npm run dev -- --host 0.0.0.0
 ```
 
+## Environment Files
+
+- Use `.env.example` for local/demo development.
+- Use `.env.production.example` as the starting point for real Stripe and Apple Pay deployment.
+- Real Apple Pay requires `DEMO_MODE=false`, valid Stripe keys, HTTPS, and a Stripe-verified domain.
+- Intended public domains: `pegger.dev` for production and `dev.pegger.dev` for development.
+
 ## Mobile Device Testing
 
 - Find your computer IP with `ipconfig`.
@@ -80,3 +91,12 @@ npm run dev -- --host 0.0.0.0
 ```
 
 More details live in `docs/development/setup.md`, `docs/architecture/system-overview.md`, and `ARCHITECTURE.md`.
+
+For real-device Apple Pay rollout, use `docs/development/apple-pay-checklist.md`.
+
+For security, deployment, and compliance preparation, use:
+
+- `docs/security/security-checklist.md`
+- `docs/operations/deployment.md`
+- `docs/compliance/privacy-policy-template.md`
+- `docs/compliance/terms-template.md`

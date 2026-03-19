@@ -118,6 +118,7 @@ class PaymentSessionRecord(BaseModel):
 
 class PaymentSessionSummary(BaseModel):
     id: str
+    user_id: str
     invoice_id: str
     merchant_name: str
     currency: str

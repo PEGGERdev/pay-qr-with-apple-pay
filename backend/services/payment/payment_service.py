@@ -8,13 +8,14 @@ from uuid import uuid4
 from fastapi import HTTPException, status
 import stripe
 
+from core.config import app_config
 from repositories.payment_repository import get_payment_attempt_repository
 
 
 class PaymentService:
     def __init__(self) -> None:
-        self.demo_mode = str(os.getenv("DEMO_MODE") or "true").strip().lower() == "true"
-        self.stripe_secret_key = str(os.getenv("STRIPE_SECRET_KEY") or "").strip()
+        self.demo_mode = app_config.demo_mode
+        self.stripe_secret_key = app_config.stripe_secret_key
         self.stripe_client = stripe.StripeClient(self.stripe_secret_key) if self.stripe_secret_key else None
 
     def _record_session(self, *, invoice, current_user: dict[str, Any], result: dict[str, Any]) -> None:

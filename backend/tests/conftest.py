@@ -1,12 +1,11 @@
 from __future__ import annotations
 
+import importlib
 import json
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
-
-from main import create_app
 
 
 @pytest.fixture(autouse=True)
@@ -14,13 +13,25 @@ def isolated_storage(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
     monkeypatch.setenv("APP_STORAGE_DIR", str(tmp_path / ".data"))
     monkeypatch.setenv("JWT_SECRET", "test-secret")
     monkeypatch.setenv("DEMO_MODE", "true")
+    monkeypatch.setenv("ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
+    monkeypatch.setenv("PUBLIC_APP_URL", "http://testserver")
 
+    from core import config as config_module
     from repositories import auth_repository, payment_repository
     from core import application
     from api.routes import auth as auth_routes
     from api.routes import payments as payment_routes
     from services.auth import token_service
     from services.payment import payment_service
+    import main as main_module
+
+    importlib.reload(config_module)
+    importlib.reload(token_service)
+    importlib.reload(payment_service)
+    importlib.reload(auth_routes)
+    importlib.reload(payment_routes)
+    importlib.reload(application)
+    importlib.reload(main_module)
 
     auth_repository._AUTH_REPOSITORY = None
     payment_repository._PAYMENT_REPOSITORY = None
@@ -34,6 +45,8 @@ def isolated_storage(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
 
 @pytest.fixture
 def client() -> TestClient:
+    from main import create_app
+
     return TestClient(create_app())
 
 

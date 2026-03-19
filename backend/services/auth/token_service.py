@@ -6,12 +6,14 @@ from typing import Any
 
 from jose import jwt
 
+from core.config import app_config
+
 
 class TokenService:
     def __init__(self) -> None:
-        self.secret_key = str(os.getenv("JWT_SECRET") or "change-this-secret").strip() or "change-this-secret"
-        self.algorithm = str(os.getenv("JWT_ALGORITHM") or "HS256").strip() or "HS256"
-        self.expire_minutes = int(os.getenv("JWT_EXPIRE_MINUTES") or "60")
+        self.secret_key = app_config.jwt_secret
+        self.algorithm = app_config.jwt_algorithm
+        self.expire_minutes = app_config.jwt_expire_minutes
 
     def issue_access_token(self, *, user_id: str, username: str) -> str:
         now = datetime.now(UTC)

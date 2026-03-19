@@ -1,0 +1,39 @@
+(security_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}
+
+pegger.dev {
+    encode zstd gzip
+    import security_headers
+
+    redir /api /api/ 308
+
+    handle_path /api/* {
+        reverse_proxy pegger-prod-backend:8000
+    }
+
+    handle {
+        reverse_proxy pegger-prod-frontend:80
+    }
+}
+
+dev.pegger.dev {
+    encode zstd gzip
+    import security_headers
+
+    redir /api /api/ 308
+
+    handle_path /api/* {
+        reverse_proxy pegger-dev-backend:8000
+    }
+
+    handle {
+        reverse_proxy pegger-dev-frontend:80
+    }
+}

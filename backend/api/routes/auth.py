@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from api.crud import router_create_auth_sessions
+from core.config import app_config
+from core.security import rate_limit_dependency
 from repositories.auth_repository import get_auth_user_repository
 from services.auth.password_service import password_service
 from services.auth.token_service import token_service
@@ -18,7 +20,7 @@ def get_auth_router() -> APIRouter:
 
     from models.schemas import AuthTokenResponse, LoginRequest, RegisterRequest, UserPublic
 
-    _AUTH_ROUTER = router_create_auth_sessions(
+    session_router = router_create_auth_sessions(
         repository=get_auth_user_repository(),
         register_model=RegisterRequest,
         login_model=LoginRequest,
@@ -29,4 +31,8 @@ def get_auth_router() -> APIRouter:
         prefix="/auth",
         tags=["Auth"],
     )
+
+    router = APIRouter(dependencies=[Depends(rate_limit_dependency("auth", app_config.auth_rate_limit))])
+    router.include_router(session_router)
+    _AUTH_ROUTER = router
     return _AUTH_ROUTER

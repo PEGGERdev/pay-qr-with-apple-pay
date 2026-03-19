@@ -41,6 +41,7 @@ npm run dev -- --host 0.0.0.0
 - `STRIPE_SECRET_KEY` enables live PaymentIntent creation in `backend/services/payment/payment_service.py`.
 - `DEMO_MODE=true` keeps the backend in demo mode even if Stripe is installed, which is useful while shaping the UI and auth flow.
 - Turn `DEMO_MODE=false` and provide both Stripe keys to exercise the real Apple Pay path.
+- For a deployment checklist, see `docs/development/apple-pay-checklist.md`.
 
 ## Auth Notes
 
