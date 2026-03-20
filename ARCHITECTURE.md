@@ -1,6 +1,6 @@
 # Architecture
 
-This project borrows the same modular frontend/backend split used in SpotOnSight.
+This project uses a modular frontend/backend split designed for maintainability and reuse.
 
 ## Frontend
 
@@ -16,11 +16,11 @@ This project borrows the same modular frontend/backend split used in SpotOnSight
 
 - `main.py`: HTTP entrypoint
 - `core/application.py`: FastAPI wiring, lifecycle, CORS, and router composition
-- `api/crud.py`: generic CRUD/authenticated-create/auth-session router builders adapted from SpotOnSight
+- `api/crud.py`: generic CRUD/authenticated-create/auth-session router builders
 - `api/routes/`: feature route modules that stay thin and delegate to services
 - `services/auth/`: JWT issuing, password hashing, current-user resolution
 - `services/payment/`: payment workflow logic
-- `repositories/`: generic file-backed repository adapters with SpotOnSight-like interfaces
+- `repositories/`: generic repository adapters and data access helpers
 - `models/schemas.py`: Pydantic request and response schemas
 
 ## Flow

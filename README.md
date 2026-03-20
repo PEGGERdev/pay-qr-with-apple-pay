@@ -1,12 +1,12 @@
 # Pay QR With Apple Pay
 
-A Vue 3 + FastAPI application for scanning QR invoices and paying them with Apple Pay through Stripe, using SpotOnSight-style backend and frontend composition patterns.
+A Vue 3 + FastAPI application for scanning QR invoices and paying them with Apple Pay through Stripe, using a modular backend and frontend architecture.
 
 Important: this repository can be made much safer and more production-ready in code, but no software repository alone can guarantee legal compliance. You still need jurisdiction-specific legal review, privacy notices, merchant onboarding, and operating procedures.
 
 ## Structure
 
-The project follows the same high-level separation used in SpotOnSight:
+The project follows a modular separation between frontend, backend, and deployment concerns:
 
 - `frontend/` Vue app with `views`, `components`, `stores`, `services`, `controllers`, and `core`
 - `backend/` FastAPI app with `api`, `core`, `services`, `repositories`, and `models`
@@ -19,7 +19,7 @@ The project follows the same high-level separation used in SpotOnSight:
 - Invoice parsing for JSON, URI, and `key:value` QR payloads
 - Apple Pay wallet flow powered by Stripe Payment Request
 - Mobile-first responsive dashboard with manual paste fallback
-- JWT-based auth flow modeled after SpotOnSight
+- JWT-based auth flow for protected payment operations
 - Live Stripe PaymentIntent support with demo fallback for local UI work
 - Production guardrails for JWT, host validation, HTTPS enforcement, and rate limiting
 - CI/CD workflow and containerized deployment assets
@@ -76,7 +76,7 @@ npm run dev -- --host 0.0.0.0
 
 - Backend auth uses `/auth/register` and `/auth/login`, issues bearer tokens, and protects `/payments` endpoints.
 - Frontend API calls go through an endpoint registry and gateway service instead of hitting URLs ad hoc.
-- Payment intent creation is routed through a generic authenticated create router to stay close to SpotOnSight's reusable actor style.
+- Payment intent creation is routed through a reusable authenticated create router.
 
 ## Demo Invoice Payload
 

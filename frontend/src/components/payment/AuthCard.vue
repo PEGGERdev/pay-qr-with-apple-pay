@@ -38,7 +38,7 @@ async function submit() {
     <div class="pill">Authentication</div>
     <h2>Sign in before paying</h2>
     <p v-if="!props.authState.user">
-      SpotOnSight protects feature workflows with a bearer session, so payment intent creation follows the same rule.
+      Payment intent creation is protected behind a bearer session.
     </p>
     <p v-else>
       Signed in as <strong>{{ props.authState.user.displayName || props.authState.user.username }}</strong>.

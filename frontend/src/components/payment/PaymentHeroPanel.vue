@@ -14,13 +14,13 @@ defineProps({
     <h1>Scan invoice QR codes and pay in one motion.</h1>
     <p>
       This app turns payment QR payloads into a clean checkout flow with a mobile-first Vue interface,
-      a SpotOnSight-inspired FastAPI backend, and Stripe-powered wallet confirmation.
+      a modular FastAPI backend, and Stripe-powered wallet confirmation.
     </p>
   </div>
 
   <div class="hero-status">
     <div>
-      <div class="pill">SpotOnSight-inspired modular structure</div>
+      <div class="pill">Modular payment architecture</div>
       <div class="metric-grid" style="margin-top: 18px;">
         <div class="metric">
           <span>QR status</span>
