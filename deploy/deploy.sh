@@ -12,6 +12,10 @@ if [ ! -d "$APP_DIR/.git" ]; then
   exit 1
 fi
 
+git -C "$APP_DIR" fetch origin
+git -C "$APP_DIR" checkout "$BRANCH" --force
+git -C "$APP_DIR" pull --ff-only origin "$BRANCH"
+
 if [ ! -f "$APP_DIR/$ENV_FILE" ]; then
   EXAMPLE_FILE="${APP_DIR}/${ENV_FILE}.example"
   if [ -f "$EXAMPLE_FILE" ]; then
@@ -22,12 +26,6 @@ if [ ! -f "$APP_DIR/$ENV_FILE" ]; then
     exit 1
   fi
 fi
-
-git -C "$APP_DIR" fetch origin
-git -C "$APP_DIR" stash --include-untracked || true
-git -C "$APP_DIR" checkout "$BRANCH" --force
-git -C "$APP_DIR" pull --ff-only origin "$BRANCH"
-git -C "$APP_DIR" stash drop || true
 
 docker compose -p "$PROJECT_NAME" --env-file "$APP_DIR/$ENV_FILE" -f "$APP_DIR/$COMPOSE_FILE" down
 docker compose -p "$PROJECT_NAME" --env-file "$APP_DIR/$ENV_FILE" -f "$APP_DIR/$COMPOSE_FILE" up -d --build --remove-orphans
