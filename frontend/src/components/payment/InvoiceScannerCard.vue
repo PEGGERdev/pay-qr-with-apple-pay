@@ -36,6 +36,30 @@ async function startScanner() {
   }
 }
 
+const fileInputRef = ref(null)
+
+function openGalleryPicker() {
+  fileInputRef.value?.click()
+}
+
+async function handleGalleryFile(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  scannerError.value = ''
+  try {
+    const galleryScanner = new Html5Qrcode(scannerId)
+    const decodedText = await galleryScanner.scanFile(file, false)
+    props.onScan(decodedText)
+    manualPayload.value = decodedText
+  } catch (error) {
+    scannerError.value = error instanceof Error
+      ? error.message
+      : 'No QR code found in the selected image.'
+  }
+  event.target.value = ''
+}
+
 async function stopScanner() {
   if (!scanner) return
   try {
@@ -88,10 +112,21 @@ onBeforeUnmount(async () => {
       <button class="button-secondary" type="button" @click="stopScanner" :disabled="!scanning">
         Stop scanner
       </button>
+      <button class="button-secondary" type="button" @click="openGalleryPicker">
+        Add from gallery
+      </button>
       <button class="button-secondary" type="button" @click="loadExample">
         Load sample invoice
       </button>
     </div>
+
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept="image/*"
+      style="display: none"
+      @change="handleGalleryFile"
+    />
 
     <div class="scanner-shell" v-if="scanning || scannerError">
       <div :id="scannerId" class="scanner-region"></div>

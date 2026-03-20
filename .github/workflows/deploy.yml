@@ -52,16 +52,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Add host to known_hosts
+        run: ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy on server
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "APP_DIR=${{ secrets.DEPLOY_PROD_APP_DIR }} BRANCH=main ENV_FILE=.env.production COMPOSE_FILE=deploy/docker-compose.prod.yml PROJECT_NAME=payqr-prod bash ${{ secrets.DEPLOY_PROD_APP_DIR }}/deploy/deploy.sh"
+          sshpass -p "${{ secrets.DEPLOY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "APP_DIR=${{ secrets.DEPLOY_PROD_APP_DIR }} BRANCH=main ENV_FILE=.env.production COMPOSE_FILE=deploy/docker-compose.prod.yml PROJECT_NAME=payqr-prod bash ${{ secrets.DEPLOY_PROD_APP_DIR }}/deploy/deploy.sh"
 
   deploy-staging:
     needs: test-and-build
@@ -71,13 +70,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Add host to known_hosts
+        run: ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy staging on server
         run: |
-          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "APP_DIR=${{ secrets.DEPLOY_STAGING_APP_DIR }} BRANCH=develop ENV_FILE=.env.staging COMPOSE_FILE=deploy/docker-compose.staging.yml PROJECT_NAME=payqr-dev bash ${{ secrets.DEPLOY_STAGING_APP_DIR }}/deploy/deploy.sh"
+          sshpass -p "${{ secrets.DEPLOY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "APP_DIR=${{ secrets.DEPLOY_STAGING_APP_DIR }} BRANCH=develop ENV_FILE=.env.staging COMPOSE_FILE=deploy/docker-compose.staging.yml PROJECT_NAME=payqr-dev bash ${{ secrets.DEPLOY_STAGING_APP_DIR }}/deploy/deploy.sh"
