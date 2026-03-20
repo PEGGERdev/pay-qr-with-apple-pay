@@ -53,14 +53,31 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
 
       - name: Add host to known_hosts
-        run: ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keygen -R "${{ secrets.DEPLOY_HOST }}" || true
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync files to server
+        run: |
+          sshpass -p "${{ secrets.DEPLOY_PASSWORD }}" rsync -az --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.env.production' \
+            --exclude '.env.staging' \
+            ./ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PROD_APP_DIR }}/"
 
       - name: Deploy on server
         run: |
-          sshpass -p "${{ secrets.DEPLOY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "APP_DIR=${{ secrets.DEPLOY_PROD_APP_DIR }} BRANCH=main ENV_FILE=.env.production COMPOSE_FILE=deploy/docker-compose.prod.yml PROJECT_NAME=payqr-prod bash ${{ secrets.DEPLOY_PROD_APP_DIR }}/deploy/deploy.sh"
+          sshpass -p "${{ secrets.DEPLOY_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" '
+            set -eu
+            cd ${{ secrets.DEPLOY_PROD_APP_DIR }}
+            chmod +x deploy/deploy.sh
+            BRANCH=main ENV_FILE=.env.production COMPOSE_FILE=deploy/docker-compose.prod.yml PROJECT_NAME=payqr-prod ./deploy/deploy.sh
+          '
 
   deploy-staging:
     needs: test-and-build
@@ -71,11 +88,28 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass rsync
 
       - name: Add host to known_hosts
-        run: ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keygen -R "${{ secrets.DEPLOY_HOST }}" || true
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync files to server
+        run: |
+          sshpass -p "${{ secrets.DEPLOY_PASSWORD }}" rsync -az --delete \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.env.production' \
+            --exclude '.env.staging' \
+            ./ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_STAGING_APP_DIR }}/"
 
       - name: Deploy staging on server
         run: |
-          sshpass -p "${{ secrets.DEPLOY_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "APP_DIR=${{ secrets.DEPLOY_STAGING_APP_DIR }} BRANCH=develop ENV_FILE=.env.staging COMPOSE_FILE=deploy/docker-compose.staging.yml PROJECT_NAME=payqr-dev bash ${{ secrets.DEPLOY_STAGING_APP_DIR }}/deploy/deploy.sh"
+          sshpass -p "${{ secrets.DEPLOY_PASSWORD }}" ssh -o StrictHostKeyChecking=no "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" '
+            set -eu
+            cd ${{ secrets.DEPLOY_STAGING_APP_DIR }}
+            chmod +x deploy/deploy.sh
+            BRANCH=develop ENV_FILE=.env.staging COMPOSE_FILE=deploy/docker-compose.staging.yml PROJECT_NAME=payqr-dev ./deploy/deploy.sh
+          '
