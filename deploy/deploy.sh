@@ -18,8 +18,10 @@ if [ ! -f "$APP_DIR/$ENV_FILE" ]; then
 fi
 
 git -C "$APP_DIR" fetch origin
-git -C "$APP_DIR" checkout "$BRANCH"
+git -C "$APP_DIR" stash --include-untracked || true
+git -C "$APP_DIR" checkout "$BRANCH" --force
 git -C "$APP_DIR" pull --ff-only origin "$BRANCH"
+git -C "$APP_DIR" stash drop || true
 
 docker compose -p "$PROJECT_NAME" --env-file "$APP_DIR/$ENV_FILE" -f "$APP_DIR/$COMPOSE_FILE" down
 docker compose -p "$PROJECT_NAME" --env-file "$APP_DIR/$ENV_FILE" -f "$APP_DIR/$COMPOSE_FILE" up -d --build --remove-orphans
