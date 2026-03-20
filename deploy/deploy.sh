@@ -13,8 +13,14 @@ if [ ! -d "$APP_DIR/.git" ]; then
 fi
 
 if [ ! -f "$APP_DIR/$ENV_FILE" ]; then
-  echo "Missing environment file $APP_DIR/$ENV_FILE" >&2
-  exit 1
+  EXAMPLE_FILE="${APP_DIR}/${ENV_FILE}.example"
+  if [ -f "$EXAMPLE_FILE" ]; then
+    echo "Creating $APP_DIR/$ENV_FILE from example file"
+    cp "$EXAMPLE_FILE" "$APP_DIR/$ENV_FILE"
+  else
+    echo "Missing environment file $APP_DIR/$ENV_FILE" >&2
+    exit 1
+  fi
 fi
 
 git -C "$APP_DIR" fetch origin
