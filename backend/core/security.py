@@ -30,23 +30,32 @@ class InMemoryRateLimiter:
         threshold = now - timedelta(seconds=window_seconds)
 
         with self._lock:
-          queue = self._requests[key]
-          while queue and queue[0] < threshold:
-              queue.popleft()
-          if len(queue) >= limit:
-              raise HTTPException(
-                  status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                  detail="Rate limit exceeded. Please try again later.",
-              )
-          queue.append(now)
+            queue = self._requests[key]
+            while queue and queue[0] < threshold:
+                queue.popleft()
+            if len(queue) >= limit:
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail="Rate limit exceeded. Please try again later.",
+                )
+            queue.append(now)
 
 
 rate_limiter = InMemoryRateLimiter()
 
 
+def _client_host(request: Request) -> str:
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    if forwarded_for:
+        forwarded_host = forwarded_for.split(",", 1)[0].strip()
+        if forwarded_host:
+            return forwarded_host
+    return getattr(getattr(request, "client", None), "host", "unknown")
+
+
 def rate_limit_dependency(scope: str, limit: int, window_seconds: int = 60) -> Callable:
     async def dependency(request: Request):
-        client_host = getattr(getattr(request, "client", None), "host", "unknown")
+        client_host = _client_host(request)
         rate_limiter.hit(f"{scope}:{client_host}", limit, window_seconds)
 
     return dependency

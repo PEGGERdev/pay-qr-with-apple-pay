@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, Request
 
 from api.crud import AuthenticatedCreateRouter
 from core.config import app_config
@@ -42,6 +42,14 @@ def get_payments_router() -> APIRouter:
         current_user: dict = Depends(get_current_user),
     ):
         return payment_service.list_payment_history(current_user)
+
+    @router.post("/payments/webhooks/stripe")
+    async def stripe_webhook(
+        request: Request,
+        stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
+    ):
+        payload = await request.body()
+        return payment_service.handle_stripe_webhook(payload, stripe_signature)
 
     _PAYMENTS_ROUTER = router
     return _PAYMENTS_ROUTER

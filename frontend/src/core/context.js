@@ -1,10 +1,8 @@
 export class AppContext {
-  constructor({ state, serviceFactories, controllerFactories }) {
+  constructor({ state, serviceFactories }) {
     this.state = state
     this._serviceFactories = serviceFactories
-    this._controllerFactories = controllerFactories
     this._services = new Map()
-    this._controllers = new Map()
   }
 
   service(id) {
@@ -16,16 +14,5 @@ export class AppContext {
       this._services.set(id, factory(this))
     }
     return this._services.get(id)
-  }
-
-  controller(id) {
-    if (!this._controllers.has(id)) {
-      const factory = this._controllerFactories[id]
-      if (!factory) {
-        throw new Error(`Unknown controller_id: ${id}`)
-      }
-      this._controllers.set(id, factory(this))
-    }
-    return this._controllers.get(id)
   }
 }

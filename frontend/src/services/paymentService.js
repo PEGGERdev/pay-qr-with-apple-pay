@@ -1,5 +1,4 @@
 import { loadStripe } from '@stripe/stripe-js'
-import { API_ENDPOINTS } from '../api/registry'
 import { ApiStateService } from './baseService'
 
 export class PaymentService extends ApiStateService {
@@ -24,14 +23,12 @@ export class PaymentService extends ApiStateService {
   }
 
   async createIntent(invoice) {
-    return this.api.request(API_ENDPOINTS.PAYMENTS_CREATE, {
-      body: { invoice },
-    })
+    return this.api.post('/payments', { invoice }, { token: this.token() })
   }
 
   async loadHistory() {
     try {
-      const history = await this.api.request(API_ENDPOINTS.PAYMENTS_HISTORY)
+      const history = await this.api.get('/payments/history', { token: this.token() })
       this.state.payment.history = Array.isArray(history) ? history : []
       return this.state.payment.history
     } catch (error) {
