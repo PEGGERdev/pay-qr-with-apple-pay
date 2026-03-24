@@ -29,3 +29,20 @@ fi
 
 docker compose -p "$PROJECT_NAME" --env-file "$APP_DIR/$ENV_FILE" -f "$APP_DIR/$COMPOSE_FILE" down
 docker compose -p "$PROJECT_NAME" --env-file "$APP_DIR/$ENV_FILE" -f "$APP_DIR/$COMPOSE_FILE" up -d --build --remove-orphans
+
+CADDYFILE_PATH="${CADDYFILE_PATH:-/opt/spotonsight/infrastructure/caddy/Caddyfile}"
+
+if ! grep -q 'qr-pay.pegger.dev' "$CADDYFILE_PATH"; then
+  cat >> "$CADDYFILE_PATH" <<'EOF'
+
+qr-pay.pegger.dev {
+    encode zstd gzip
+    import security_headers
+
+    handle {
+        reverse_proxy pegger-prod-frontend:80
+    }
+}
+EOF
+  docker restart spotonsight-proxy-1
+fi

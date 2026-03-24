@@ -76,7 +76,7 @@ jobs:
             set -eu
             cd ${{ secrets.DEPLOY_PROD_APP_DIR }}
             chmod +x deploy/deploy.sh
-            BRANCH=main ENV_FILE=.env.production COMPOSE_FILE=deploy/docker-compose.prod.yml PROJECT_NAME=payqr-prod ./deploy/deploy.sh
+            BRANCH=main ENV_FILE=.env.production COMPOSE_FILE=deploy/docker-compose.prod.yml PROJECT_NAME=payqr-prod CADDYFILE_PATH=${{ secrets.DEPLOY_CADDYFILE_PATH }} ./deploy/deploy.sh
           '
 
   deploy-staging:
@@ -111,5 +111,5 @@ jobs:
             set -eu
             cd ${{ secrets.DEPLOY_STAGING_APP_DIR }}
             chmod +x deploy/deploy.sh
-            BRANCH=develop ENV_FILE=.env.staging COMPOSE_FILE=deploy/docker-compose.staging.yml PROJECT_NAME=payqr-dev ./deploy/deploy.sh
+            BRANCH=develop ENV_FILE=.env.staging COMPOSE_FILE=deploy/docker-compose.staging.yml PROJECT_NAME=payqr-dev CADDYFILE_PATH=${{ secrets.DEPLOY_CADDYFILE_PATH }} ./deploy/deploy.sh
           '
