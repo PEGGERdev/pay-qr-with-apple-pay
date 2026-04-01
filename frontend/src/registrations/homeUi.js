@@ -26,8 +26,8 @@ homeScreen.header({
   buildProps: ({ app }) => ({
     invoiceReady: Boolean(app.state.invoice.current),
     isAuthenticated: app.controller('auth').isAuthenticated(),
-    apiBaseUrl: app.state.config.apiBaseUrl,
     isDemoMode: app.state.payment.demoMode || app.state.config.demoMode,
+    currentStep: app.controller('payment').getCurrentStep(),
     onReset: () => app.controller('invoice').clear(),
   }),
 })
