@@ -35,30 +35,30 @@ async function submit() {
 
 <template>
   <section class="panel">
-    <div class="pill">Authentication</div>
-    <h2>Sign in before paying</h2>
+    <div class="pill">Step 1 · Secure session</div>
+    <h2>Sign in to authorize the payment</h2>
     <p v-if="!props.authState.user">
-      Payment intent creation is protected behind a bearer session.
+      Your session protects payment intent creation and keeps the checkout tied to the right account.
     </p>
     <p v-else>
-      Signed in as <strong>{{ props.authState.user.displayName || props.authState.user.username }}</strong>.
+      Signed in as <strong>{{ props.authState.user.displayName || props.authState.user.username }}</strong>. You can continue to invoice review and wallet confirmation.
     </p>
 
-    <div class="button-row" style="margin-top: 18px;" v-if="!props.authState.user">
-      <button class="button-secondary" type="button" @click="mode.value = 'login'">Login</button>
-      <button class="button-secondary" type="button" @click="mode.value = 'register'">Register</button>
+    <div class="segmented-control" v-if="!props.authState.user">
+      <button class="segment" :data-active="mode.value === 'login'" type="button" @click="mode.value = 'login'">Sign in</button>
+      <button class="segment" :data-active="mode.value === 'register'" type="button" @click="mode.value = 'register'">Create account</button>
     </div>
 
     <div class="form-grid" v-if="!props.authState.user">
       <div class="field" v-if="mode.value === 'login'">
         <label for="usernameOrEmail">Username or email</label>
-        <input id="usernameOrEmail" class="input" v-model="form.usernameOrEmail" />
+        <input id="usernameOrEmail" class="input" autocomplete="username" v-model="form.usernameOrEmail" />
       </div>
 
       <template v-else>
         <div class="field">
           <label for="username">Username</label>
-          <input id="username" class="input" v-model="form.username" />
+          <input id="username" class="input" autocomplete="username" v-model="form.username" />
         </div>
         <div class="field">
           <label for="displayName">Display name</label>
@@ -66,13 +66,13 @@ async function submit() {
         </div>
         <div class="field">
           <label for="email">Email</label>
-          <input id="email" class="input" v-model="form.email" />
+          <input id="email" class="input" type="email" autocomplete="email" v-model="form.email" />
         </div>
       </template>
 
       <div class="field">
         <label for="password">Password</label>
-        <input id="password" class="input" type="password" v-model="form.password" />
+        <input id="password" class="input" type="password" autocomplete="current-password" v-model="form.password" />
       </div>
 
       <button class="button" type="button" @click="submit">
@@ -81,7 +81,16 @@ async function submit() {
     </div>
 
     <div class="result-box" v-else>
-      <p>{{ props.authState.user.email }}</p>
+      <div class="detail-grid compact-grid">
+        <div class="detail-item">
+          <span>Account</span>
+          <strong>{{ props.authState.user.email }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Status</span>
+          <strong>Authorized for payment</strong>
+        </div>
+      </div>
       <button class="button-secondary" type="button" @click="props.onLogout">Log out</button>
     </div>
 

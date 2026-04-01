@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+from services.shared import as_upper_text, utc_now
 
 
 def _to_minor_units(value: float) -> int:
@@ -28,12 +30,12 @@ class InvoicePayload(BaseModel):
     @field_validator("currency")
     @classmethod
     def normalize_currency(cls, value: str) -> str:
-        return str(value or "EUR").strip().upper()
+        return as_upper_text(value, "EUR")
 
     @field_validator("country_code")
     @classmethod
     def normalize_country_code(cls, value: str) -> str:
-        return str(value or "DE").strip().upper()
+        return as_upper_text(value, "DE")
 
     @model_validator(mode="after")
     def validate_amount_minor(self):
@@ -69,7 +71,7 @@ class PaymentSessionRecord(BaseModel):
     @field_validator("created_at")
     @classmethod
     def default_created_at(cls, value):
-        return value or datetime.now(UTC)
+        return value or utc_now()
 
 
 class PaymentSessionSummary(BaseModel):

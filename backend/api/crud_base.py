@@ -8,6 +8,7 @@ from pydantic import BaseModel, ValidationError
 
 from api.crud_types import CrudRouteConfigs, CrudRouteEnabled, CrudRouteWrappers
 from api.crud_validation import validation_error_details
+from services.shared import as_text
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -41,7 +42,7 @@ class GenericCrudRouter:
         return []
 
     def _validate_entity_id(self, entity_id: str) -> str:
-        text = str(entity_id or "").strip()
+        text = as_text(entity_id)
         if not text:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format")
         return text

@@ -7,6 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
 
 from repositories.auth_repository import get_auth_user_repository
+from services.shared import as_text
 from . import token_service as token_service_module
 
 
@@ -14,7 +15,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def _find_user_by_id(user_id: str) -> dict[str, Any] | None:
-    text = str(user_id or "").strip()
+    text = as_text(user_id)
     if not text:
         return None
     return get_auth_user_repository().find_one({"id": text})
@@ -27,7 +28,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    token = str(credentials.credentials).strip() if credentials else ""
+    token = as_text(credentials.credentials) if credentials else ""
     if not token:
         raise credentials_error
 
@@ -36,7 +37,7 @@ def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(
     except JWTError as exc:
         raise credentials_error from exc
 
-    user_id = str(payload.get("sub") or "").strip()
+    user_id = as_text(payload.get("sub"))
     if not user_id:
         raise credentials_error
 

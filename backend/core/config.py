@@ -3,13 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 import os
 
+from services.shared import as_lower_text, as_text
+
 
 def _text(name: str, default: str = "") -> str:
-    return str(os.getenv(name) or default).strip()
+    return as_text(os.getenv(name), default)
 
 
 def _bool(name: str, default: bool = False) -> bool:
-    return _text(name, "true" if default else "false").lower() == "true"
+    return as_lower_text(_text(name, "true" if default else "false")) == "true"
 
 
 def _int(name: str, default: int) -> int:

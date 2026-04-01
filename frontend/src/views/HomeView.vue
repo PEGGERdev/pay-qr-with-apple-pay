@@ -7,6 +7,9 @@ import ApplePayCheckoutCard from '../components/payment/ApplePayCheckoutCard.vue
 import PaymentTimelineCard from '../components/payment/PaymentTimelineCard.vue'
 import PaymentHeroPanel from '../components/payment/PaymentHeroPanel.vue'
 import FooterNote from '../components/payment/FooterNote.vue'
+import { buildCheckoutActionState } from '../models/checkoutActionState'
+import { buildInvoiceReviewActionState } from '../models/invoiceReviewActionState'
+import { buildPaymentJourney } from '../models/paymentJourney'
 import { useApp } from '../core/injection'
 
 const app = useApp()
@@ -19,11 +22,33 @@ const state = app.state
 const isAuthenticated = computed(() => Boolean(state.session.token))
 const authError = computed(() => authService.lastError())
 const isDemoMode = computed(() => state.payment.demoMode || state.config.demoMode)
+const invoiceReviewAction = computed(() => buildInvoiceReviewActionState({
+  invoice: state.invoice.current,
+  parseError: state.invoice.parseError,
+}))
+const checkoutAction = computed(() => buildCheckoutActionState({
+  invoice: state.invoice.current,
+  session: state.session,
+  payment: state.payment,
+  hasPublishableKey: Boolean(state.config.stripePublishableKey),
+}))
+const journey = computed(() => buildPaymentJourney({
+  ...state,
+  invoiceReviewAction: invoiceReviewAction.value,
+  checkoutAction: checkoutAction.value,
+}))
+
+async function refreshPaymentHistory() {
+  if (!state.session.token) {
+    return []
+  }
+  return paymentService.loadHistory()
+}
 
 async function login(usernameOrEmail, password) {
   const ok = await authService.login(usernameOrEmail, password)
   if (ok) {
-    await paymentService.loadHistory()
+    await refreshPaymentHistory()
   }
   return ok
 }
@@ -31,7 +56,7 @@ async function login(usernameOrEmail, password) {
 async function register(input) {
   const ok = await authService.register(input)
   if (ok) {
-    await paymentService.loadHistory()
+    await refreshPaymentHistory()
   }
   return ok
 }
@@ -59,7 +84,7 @@ function resetInvoice() {
 
 onMounted(async () => {
   if (isAuthenticated.value) {
-    await paymentService.loadHistory()
+    await refreshPaymentHistory()
   }
 })
 </script>
@@ -72,8 +97,27 @@ onMounted(async () => {
         :is-authenticated="isAuthenticated"
         :api-base-url="state.config.apiBaseUrl"
         :is-demo-mode="isDemoMode"
+        :payment-state="state.payment"
+        :session="state.session"
+        :current-step="journey.currentStep"
+        :checkout-action="checkoutAction"
         :on-reset="resetInvoice"
       />
+    </section>
+
+    <section class="journey-strip" aria-label="Payment progress overview">
+      <article
+        v-for="(step, index) in journey.steps"
+        :key="step.key"
+        class="journey-chip"
+        :data-tone="step.tone"
+      >
+        <span class="journey-chip-index">{{ index + 1 }}</span>
+        <div>
+          <strong>{{ step.title }}</strong>
+          <p>{{ step.description }}</p>
+        </div>
+      </article>
     </section>
 
     <section class="content-grid">
@@ -95,6 +139,7 @@ onMounted(async () => {
           :payment-state="state.payment"
           :is-authenticated="isAuthenticated"
           :stripe-publishable-key="state.config.stripePublishableKey"
+          :checkout-action="checkoutAction"
           :create-payment-request="(invoice) => paymentService.createPaymentRequest(invoice)"
           :confirm-wallet-payment="(payload) => paymentService.confirmWalletPayment(payload)"
         />
@@ -104,12 +149,12 @@ onMounted(async () => {
         <InvoicePreviewCard
           :invoice="state.invoice.current"
           :parse-error="state.invoice.parseError"
+          :review-action="invoiceReviewAction"
         />
 
         <PaymentTimelineCard
-          :invoice="state.invoice.current"
           :payment="state.payment"
-          :session="state.session"
+          :journey="journey"
         />
       </div>
     </section>

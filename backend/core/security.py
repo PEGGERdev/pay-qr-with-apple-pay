@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from threading import Lock
 from typing import Callable
 
 from fastapi import Depends, HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from services.shared import utc_now
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -26,7 +28,7 @@ class InMemoryRateLimiter:
         self._lock = Lock()
 
     def hit(self, key: str, limit: int, window_seconds: int) -> None:
-        now = datetime.now(UTC)
+        now = utc_now()
         threshold = now - timedelta(seconds=window_seconds)
 
         with self._lock:

@@ -1,5 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { formatInvoiceAmount } from '../../models/invoiceParser'
+import { asText } from '../../utils/sanitizers'
 
 const props = defineProps({
   invoice: {
@@ -18,6 +20,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  checkoutAction: {
+    type: Object,
+    required: true,
+  },
   createPaymentRequest: {
     type: Function,
     required: true,
@@ -33,7 +39,8 @@ const walletMessage = ref('Scan an invoice to initialize Apple Pay.')
 
 let mountedElement = null
 
-const publishableKeyMissing = computed(() => !String(props.stripePublishableKey || '').trim())
+const publishableKeyMissing = computed(() => !asText(props.stripePublishableKey))
+const invoiceAmount = computed(() => formatInvoiceAmount(props.invoice))
 
 function teardownWallet() {
   if (mountedElement) {
@@ -45,18 +52,8 @@ function teardownWallet() {
 async function initializeWallet(invoice) {
   teardownWallet()
 
-  if (!invoice) {
-    walletMessage.value = 'Scan an invoice to initialize Apple Pay.'
-    return
-  }
-
-  if (!props.isAuthenticated) {
-    walletMessage.value = 'Sign in first to create a protected payment intent.'
-    return
-  }
-
-  if (publishableKeyMissing.value) {
-    walletMessage.value = 'Add VITE_STRIPE_PUBLISHABLE_KEY to enable Apple Pay in the browser.'
+  if (!props.checkoutAction.canInitializeWallet || !invoice) {
+    walletMessage.value = props.checkoutAction.message
     return
   }
 
@@ -105,7 +102,7 @@ async function initializeWallet(invoice) {
 }
 
 watch(
-  () => [props.invoice, props.isAuthenticated],
+  () => [props.invoice, props.checkoutAction.phase],
   async ([invoice]) => {
     await initializeWallet(invoice)
   },
@@ -119,15 +116,50 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="panel">
-    <div class="pill">Step 3 · Confirm with Apple Pay</div>
-    <h2>Wallet checkout</h2>
+    <div class="pill">Step 4 · Confirm with Apple Pay</div>
+    <h2>Review readiness, then confirm with Apple Pay</h2>
     <p>
-      Stripe Payment Request exposes Apple Pay on supported Apple hardware and keeps card details off your server.
+      Apple Pay is exposed through Stripe Payment Request on supported Apple devices. The final payment confirmation happens in the wallet sheet, not in a custom card form.
     </p>
 
-    <div class="wallet-box">
+    <div class="checkout-summary" v-if="props.invoice">
+      <div>
+        <span>Ready to pay</span>
+        <strong>{{ invoiceAmount }}</strong>
+      </div>
+      <div>
+        <span>Merchant</span>
+        <strong>{{ props.invoice.merchantName }}</strong>
+      </div>
+    </div>
+
+    <div class="detail-grid compact-grid readiness-grid">
+      <div class="detail-item">
+        <span>Invoice</span>
+        <strong>{{ props.invoice ? 'Checked' : 'Required' }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Session</span>
+        <strong>{{ props.isAuthenticated ? 'Authorized' : 'Sign in first' }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>Wallet availability</span>
+        <strong>{{ props.paymentState.walletAvailable ? 'Ready on this device' : 'Pending device support' }}</strong>
+      </div>
+      <div class="detail-item">
+        <span>History</span>
+        <strong>{{ props.paymentState.history.length }} saved</strong>
+      </div>
+    </div>
+
+    <div class="wallet-box" :data-tone="props.checkoutAction.tone">
       <div class="wallet-target" ref="walletTarget"></div>
       <p class="mini-note">{{ walletMessage }}</p>
+      <div class="result-box result-box-inline" :data-tone="props.checkoutAction.tone">
+        <strong>{{ props.checkoutAction.title }}</strong>
+        <p>{{ props.checkoutAction.message }}</p>
+        <span>{{ props.checkoutAction.nextAction }}</span>
+      </div>
       <p class="mini-note status-warning" v-if="props.paymentState.demoMode">
         Demo mode returned a simulated success because backend Stripe keys are not configured.
       </p>
@@ -145,7 +177,7 @@ onBeforeUnmount(() => {
 
     <p class="mini-note status-danger" v-if="props.paymentState.error">{{ props.paymentState.error }}</p>
     <p class="mini-note" v-if="props.paymentState.history.length">
-      {{ props.paymentState.history.length }} payment session{{ props.paymentState.history.length === 1 ? '' : 's' }} recorded.
+      {{ props.paymentState.history.length }} payment session{{ props.paymentState.history.length === 1 ? '' : 's' }} recorded in your history.
     </p>
     <p class="mini-note status-warning" v-if="publishableKeyMissing">
       Stripe is not wired yet. Add `VITE_STRIPE_PUBLISHABLE_KEY` in `.env`.

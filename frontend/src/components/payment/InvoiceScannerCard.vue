@@ -99,36 +99,48 @@ onBeforeUnmount(async () => {
 
 <template>
   <section class="panel">
-    <div class="pill">Step 1 · Capture the invoice</div>
-    <h2>Scan or paste a QR invoice</h2>
+    <div class="pill">Step 2 · Capture the invoice</div>
+    <h2>Scan, upload, or paste the invoice QR payload</h2>
     <p>
-      Use the device camera for live scanning or paste the payload directly while building the flow locally.
+      Start with the fastest source available on this device. The invoice is parsed immediately so the amount and merchant can be checked before payment.
     </p>
 
-    <div class="button-row" style="margin-top: 18px;">
+    <div class="button-row">
       <button class="button" type="button" @click="startScanner" :disabled="scanning">
-        {{ scanning ? 'Scanner active' : 'Start camera scan' }}
+        {{ scanning ? 'Camera is scanning' : 'Scan with camera' }}
       </button>
       <button class="button-secondary" type="button" @click="stopScanner" :disabled="!scanning">
-        Stop scanner
+        Stop camera
       </button>
       <button class="button-secondary" type="button" @click="openGalleryPicker">
-        Add from gallery
+        Upload QR image
       </button>
       <button class="button-secondary" type="button" @click="loadExample">
-        Load sample invoice
+        Load sample payload
       </button>
+    </div>
+
+    <div class="support-strip">
+      <div class="support-item">
+        <strong>Best on mobile</strong>
+        <span>Use the rear camera for the quickest scan.</span>
+      </div>
+      <div class="support-item">
+        <strong>Fallback ready</strong>
+        <span>Manual paste works for local testing and copied payloads.</span>
+      </div>
     </div>
 
     <input
       ref="fileInputRef"
       type="file"
       accept="image/*"
-      style="display: none"
+      class="visually-hidden"
       @change="handleGalleryFile"
     />
 
     <div class="scanner-shell" v-if="scanning || scannerError">
+      <div class="scanner-status-banner" v-if="scanning">Point the camera at the invoice QR code.</div>
       <div :id="scannerId" class="scanner-region"></div>
     </div>
 
@@ -145,7 +157,7 @@ onBeforeUnmount(async () => {
         ></textarea>
       </div>
       <button class="button" type="button" @click="submitManualPayload" :disabled="!hasPayload">
-        Parse invoice
+        Review invoice
       </button>
     </div>
   </section>

@@ -1,5 +1,6 @@
 import { AppContext } from '../core/context'
 import { createAppState, persistSession } from '../stores/appState'
+import { clearSessionState } from '../stores/sessionState'
 import { ApiClient } from '../services/apiClient'
 import { AuthService } from '../services/authService'
 import { InvoiceService } from '../services/invoiceService'
@@ -9,8 +10,7 @@ export function buildAppContext() {
   const state = createAppState()
 
   function handleUnauthorized() {
-    state.session.token = ''
-    state.session.user = null
+    clearSessionState(state)
     persistSession(state)
   }
 

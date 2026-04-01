@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 import re
 from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-
-def _normalize_email(value: str) -> str:
-    return str(value or "").strip().lower()
-
-
-def _normalize_username(value: str) -> str:
-    return str(value or "").strip().lower()
+from services.shared import as_lower_text, utc_now
 
 
 class RegisterRequest(BaseModel):
@@ -43,7 +37,7 @@ class LoginRequest(BaseModel):
     @field_validator("username_or_email")
     @classmethod
     def normalize_username_or_email(cls, value: str) -> str:
-        return str(value or "").strip().lower()
+        return as_lower_text(value)
 
 
 class AuthUserRecord(BaseModel):
@@ -57,7 +51,7 @@ class AuthUserRecord(BaseModel):
     @field_validator("username")
     @classmethod
     def normalize_username(cls, value: str) -> str:
-        username = _normalize_username(value)
+        username = as_lower_text(value)
         if not re.fullmatch(r"[a-z0-9_.-]{3,40}", username):
             raise ValueError("Invalid username format")
         return username
@@ -65,7 +59,7 @@ class AuthUserRecord(BaseModel):
     @field_validator("email")
     @classmethod
     def normalize_email(cls, value: str) -> str:
-        email = _normalize_email(value)
+        email = as_lower_text(value)
         if "@" not in email:
             raise ValueError("Invalid email format")
         return email
@@ -73,4 +67,4 @@ class AuthUserRecord(BaseModel):
     @field_validator("created_at")
     @classmethod
     def default_created_at(cls, value):
-        return value or datetime.now(UTC)
+        return value or utc_now()

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
-import os
+from datetime import timedelta
 from typing import Any
 
 from jose import jwt
 
 from core.config import app_config
+from services.shared import utc_now
 
 
 class TokenService:
@@ -16,7 +16,7 @@ class TokenService:
         self.expire_minutes = app_config.jwt_expire_minutes
 
     def issue_access_token(self, *, user_id: str, username: str) -> str:
-        now = datetime.now(UTC)
+        now = utc_now()
         payload = {
             "sub": str(user_id),
             "username": str(username or ""),

@@ -4,9 +4,9 @@ import os
 
 from dataclasses import dataclass
 from typing import Any
-from uuid import uuid4
-
 from pymongo import MongoClient
+
+from services.shared import new_id
 
 
 @dataclass
@@ -72,7 +72,7 @@ class MongoRepository:
             payload = entity.model_dump(by_alias=True, exclude_none=True)
         else:
             payload = dict(entity)
-        payload.setdefault("id", str(uuid4()))
+        payload.setdefault("id", new_id())
         return payload
 
     def create(self, entity) -> str:

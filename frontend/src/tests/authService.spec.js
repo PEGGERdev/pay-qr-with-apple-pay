@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthService } from '../services/authService'
+import { authResponseScenario } from './data/scenarios'
+import { createAuthServiceHarness } from './harness/serviceHarness'
 
 describe('AuthService', () => {
   let api
@@ -7,24 +9,11 @@ describe('AuthService', () => {
   let state
 
   beforeEach(() => {
-    api = { post: vi.fn() }
-    persistSession = vi.fn()
-    state = {
-      session: { token: '', user: null },
-      payment: { history: [] },
-    }
+    ;({ api, persistSession, state } = createAuthServiceHarness())
   })
 
   it('stores session after login', async () => {
-    api.post.mockResolvedValue({
-      access_token: 'token-1',
-      user: {
-        id: 'user-1',
-        username: 'demo',
-        email: 'demo@example.com',
-        display_name: 'Demo',
-      },
-    })
+    api.post.mockResolvedValue(authResponseScenario())
 
     const service = new AuthService(api, state, { persistSession })
     const ok = await service.login('demo', 'secret')

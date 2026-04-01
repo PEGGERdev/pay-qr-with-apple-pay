@@ -1,5 +1,7 @@
 import { normalizeUser } from '../models/userMapper'
-import { persistSession } from '../stores/appState'
+import { clearPaymentHistoryState } from '../stores/paymentState'
+import { applySessionState, clearSessionState, persistSession } from '../stores/sessionState'
+import { asText } from '../utils/sanitizers'
 import { ApiStateService } from './baseService'
 
 export class AuthService extends ApiStateService {
@@ -14,8 +16,10 @@ export class AuthService extends ApiStateService {
       return false
     }
 
-    this.state.session.token = data.access_token
-    this.state.session.user = normalizeUser(data.user)
+    applySessionState(this.state, {
+      token: data.access_token,
+      user: normalizeUser(data.user),
+    })
     this.persistSession(this.state)
     this.clearError()
     return true
@@ -24,7 +28,7 @@ export class AuthService extends ApiStateService {
   async login(usernameOrEmail, password) {
     try {
       const data = await this.api.post('/auth/login', {
-        username_or_email: String(usernameOrEmail || '').trim(),
+        username_or_email: asText(usernameOrEmail),
         password: String(password || ''),
       })
       return this._applySession(data)
@@ -50,9 +54,8 @@ export class AuthService extends ApiStateService {
   }
 
   logout() {
-    this.state.session.token = ''
-    this.state.session.user = null
-    this.state.payment.history = []
+    clearSessionState(this.state)
+    clearPaymentHistoryState(this.state)
     this.clearError()
     this.persistSession(this.state)
   }
