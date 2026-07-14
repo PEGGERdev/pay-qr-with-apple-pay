@@ -1,16 +1,14 @@
-import { asText } from '../utils/sanitizers'
-
 function runtimeOrigin() {
-  const origin = asText(globalThis?.location?.origin)
+  const origin = String(globalThis?.location?.origin || '').trim()
   return origin || 'http://localhost'
 }
 
 function hasAbsoluteScheme(value) {
-  return /^[a-z][a-z\d+.-]*:\/\//i.test(asText(value))
+  return /^[a-z][a-z\d+.-]*:\/\//i.test(String(value || '').trim())
 }
 
 function normalizeBaseUrl(baseUrl) {
-  const raw = asText(baseUrl)
+  const raw = String(baseUrl || '').trim()
   if (!raw) {
     return {
       origin: runtimeOrigin(),
@@ -29,7 +27,7 @@ function normalizeBaseUrl(baseUrl) {
 }
 
 function buildRequestUrl(baseUrl, path) {
-  const rawPath = asText(path)
+  const rawPath = String(path || '').trim()
   if (hasAbsoluteScheme(rawPath)) {
     return rawPath
   }
@@ -60,7 +58,7 @@ export class ApiClient {
   async request(method, path, { body, token, form = false } = {}) {
     const headers = {}
     let payload
-    const hasAuthToken = Boolean(asText(token))
+    const hasAuthToken = Boolean(String(token || '').trim())
 
     if (body !== undefined) {
       if (form) {

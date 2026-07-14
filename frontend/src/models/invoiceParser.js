@@ -1,6 +1,3 @@
-import { INVOICE_FIELD_DEFINITIONS, INVOICE_PAYLOAD_FORMATS } from './invoiceCatalog'
-import { asText, asUpperText } from '../utils/sanitizers'
-
 function normalizeAmount(value) {
   const amount = Number.parseFloat(value)
   if (!Number.isFinite(amount) || amount <= 0) {
@@ -9,18 +6,34 @@ function normalizeAmount(value) {
   return Math.round(amount * 100) / 100
 }
 
-function readJsonSource(raw) {
-  return JSON.parse(raw)
+function parseJsonPayload(raw) {
+  const parsed = JSON.parse(raw)
+  return {
+    invoiceId: parsed.invoiceId || parsed.id || parsed.reference || 'QR-INVOICE',
+    merchantName: parsed.merchantName || parsed.merchant || parsed.payee || 'Invoice merchant',
+    description: parsed.description || parsed.label || 'Scanned QR invoice',
+    currency: String(parsed.currency || parsed.ccy || 'EUR').toUpperCase(),
+    countryCode: String(parsed.countryCode || parsed.country || 'DE').toUpperCase(),
+    amount: normalizeAmount(parsed.amount),
+  }
 }
 
-function readUriSource(raw) {
+function parseUriPayload(raw) {
   const queryIndex = raw.indexOf('?')
   const query = queryIndex >= 0 ? raw.slice(queryIndex + 1) : raw
-  return new URLSearchParams(query)
+  const params = new URLSearchParams(query)
+  return {
+    invoiceId: params.get('tr') || params.get('ref') || 'QR-INVOICE',
+    merchantName: params.get('pn') || params.get('merchant') || 'Invoice merchant',
+    description: params.get('tn') || params.get('description') || 'Scanned QR invoice',
+    currency: String(params.get('cu') || params.get('currency') || 'EUR').toUpperCase(),
+    countryCode: String(params.get('country') || 'DE').toUpperCase(),
+    amount: normalizeAmount(params.get('am') || params.get('amount')),
+  }
 }
 
-function readLineSource(raw) {
-  return raw
+function parseLinePayload(raw) {
+  const entries = raw
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
@@ -31,55 +44,31 @@ function readLineSource(raw) {
       }
       return acc
     }, {})
-}
 
-function sourceValue(source, formatName, key) {
-  if (formatName === 'uri') {
-    return source.get(key)
-  }
-  return source?.[key]
-}
-
-function readField(source, formatName, definition) {
-  for (const alias of definition.aliases) {
-    const value = asText(sourceValue(source, formatName, alias))
-    if (value) {
-      return value
-    }
-  }
-  return definition.fallback
-}
-
-function buildInvoice(source, formatName) {
   return {
-    invoiceId: readField(source, formatName, INVOICE_FIELD_DEFINITIONS.invoiceId),
-    merchantName: readField(source, formatName, INVOICE_FIELD_DEFINITIONS.merchantName),
-    description: readField(source, formatName, INVOICE_FIELD_DEFINITIONS.description),
-    currency: asUpperText(readField(source, formatName, INVOICE_FIELD_DEFINITIONS.currency), 'EUR'),
-    countryCode: asUpperText(readField(source, formatName, INVOICE_FIELD_DEFINITIONS.countryCode), 'DE'),
-    amount: normalizeAmount(readField(source, formatName, INVOICE_FIELD_DEFINITIONS.amount)),
+    invoiceId: entries.invoiceid || entries.reference || 'QR-INVOICE',
+    merchantName: entries.merchant || entries.merchantname || 'Invoice merchant',
+    description: entries.description || entries.note || 'Scanned QR invoice',
+    currency: String(entries.currency || 'EUR').toUpperCase(),
+    countryCode: String(entries.country || 'DE').toUpperCase(),
+    amount: normalizeAmount(entries.amount),
   }
-}
-
-function parsePayloadSource(raw, formatName) {
-  if (formatName === 'json') {
-    return readJsonSource(raw)
-  }
-  if (formatName === 'uri') {
-    return readUriSource(raw)
-  }
-  return readLineSource(raw)
 }
 
 export function parseInvoicePayload(rawPayload) {
-  const raw = asText(rawPayload)
+  const raw = String(rawPayload || '').trim()
   if (!raw) {
     throw new Error('Scan a QR code or paste an invoice payload first.')
   }
 
-  const format = INVOICE_PAYLOAD_FORMATS.find((candidate) => candidate.matches(raw))
-  const source = parsePayloadSource(raw, format.name)
-  const invoice = buildInvoice(source, format.name)
+  let invoice
+  if (raw.startsWith('{')) {
+    invoice = parseJsonPayload(raw)
+  } else if (raw.includes('?') || raw.startsWith('upi://') || raw.startsWith('pay://')) {
+    invoice = parseUriPayload(raw)
+  } else {
+    invoice = parseLinePayload(raw)
+  }
 
   return {
     ...invoice,

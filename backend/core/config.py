@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 import os
 
-from services.shared import as_lower_text, as_text
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
 
 def _text(name: str, default: str = "") -> str:
-    return as_text(os.getenv(name), default)
+    return str(os.getenv(name) or default).strip()
 
 
 def _bool(name: str, default: bool = False) -> bool:
-    return as_lower_text(_text(name, "true" if default else "false")) == "true"
+    return _text(name, "true" if default else "false").lower() == "true"
 
 
 def _int(name: str, default: int) -> int:
@@ -35,7 +38,6 @@ class AppConfig:
     jwt_expire_minutes: int
     demo_mode: bool
     stripe_secret_key: str
-    stripe_webhook_secret: str
     force_https: bool
     allowed_hosts: list[str]
     auth_rate_limit: int
@@ -68,8 +70,6 @@ class AppConfig:
                 raise RuntimeError("JWT_SECRET must be at least 32 characters in production")
             if not self.stripe_secret_key.startswith("sk_"):
                 raise RuntimeError("STRIPE_SECRET_KEY must be configured in production")
-            if not self.stripe_webhook_secret.startswith("whsec_"):
-                raise RuntimeError("STRIPE_WEBHOOK_SECRET must be configured in production")
             if any(origin.startswith("http://") for origin in self.cors_origins):
                 raise RuntimeError("CORS_ORIGINS must use https in production")
 
@@ -86,7 +86,6 @@ def load_config() -> AppConfig:
         jwt_expire_minutes=_int("JWT_EXPIRE_MINUTES", 60),
         demo_mode=_bool("DEMO_MODE", True),
         stripe_secret_key=_text("STRIPE_SECRET_KEY"),
-        stripe_webhook_secret=_text("STRIPE_WEBHOOK_SECRET"),
         force_https=_bool("FORCE_HTTPS", False),
         allowed_hosts=_csv("ALLOWED_HOSTS", ["localhost", "127.0.0.1"]),
         auth_rate_limit=_int("AUTH_RATE_LIMIT", 20),

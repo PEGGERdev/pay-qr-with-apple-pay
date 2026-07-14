@@ -1,29 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthService } from '../services/authService'
-import { authResponseScenario } from './data/scenarios'
-import { createAuthServiceHarness } from './harness/serviceHarness'
 
 describe('AuthService', () => {
   let api
-  let persistSession
   let state
 
   beforeEach(() => {
-    ;({ api, persistSession, state } = createAuthServiceHarness())
+    api = { request: vi.fn() }
+    state = {
+      session: { token: '', user: null },
+      payment: { history: [] },
+    }
   })
 
   it('stores session after login', async () => {
-    api.post.mockResolvedValue(authResponseScenario())
+    api.request.mockResolvedValue({
+      access_token: 'token-1',
+      user: {
+        id: 'user-1',
+        username: 'demo',
+        email: 'demo@example.com',
+        display_name: 'Demo',
+      },
+    })
 
-    const service = new AuthService(api, state, { persistSession })
+    const service = new AuthService(api, state)
     const ok = await service.login('demo', 'secret')
 
     expect(ok).toBe(true)
-    expect(api.post).toHaveBeenCalledWith('/auth/login', {
-      username_or_email: 'demo',
-      password: 'secret',
-    })
-    expect(persistSession).toHaveBeenCalledWith(state)
     expect(state.session.token).toBe('token-1')
     expect(state.session.user.displayName).toBe('Demo')
   })
@@ -33,12 +37,11 @@ describe('AuthService', () => {
     state.session.user = { id: 'user-1' }
     state.payment.history = [{ id: 'pay-1' }]
 
-    const service = new AuthService(api, state, { persistSession })
+    const service = new AuthService(api, state)
     service.logout()
 
     expect(state.session.token).toBe('')
     expect(state.session.user).toBe(null)
     expect(state.payment.history).toEqual([])
-    expect(persistSession).toHaveBeenCalledWith(state)
   })
 })

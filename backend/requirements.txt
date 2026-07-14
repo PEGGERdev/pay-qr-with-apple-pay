@@ -9,3 +9,4 @@ stripe
 pytest
 pymongo
 mongomock
+python-dotenv

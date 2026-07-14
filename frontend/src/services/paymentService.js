@@ -1,14 +1,5 @@
 import { loadStripe } from '@stripe/stripe-js'
-import { asLowerText, asText } from '../utils/sanitizers'
-import {
-  applyDemoModeState,
-  applyPaymentErrorState,
-  applyPaymentHistoryState,
-  applyPaymentOutcomeState,
-  applyWalletAvailabilityState,
-  beginPaymentState,
-  finishPaymentState,
-} from '../stores/paymentState'
+import { API_ENDPOINTS } from '../api/registry'
 import { ApiStateService } from './baseService'
 
 export class PaymentService extends ApiStateService {
@@ -20,7 +11,7 @@ export class PaymentService extends ApiStateService {
   async stripe() {
     if (this._stripe) return this._stripe
 
-    const key = asText(this.state.config.stripePublishableKey)
+    const key = String(this.state.config.stripePublishableKey || '').trim()
     if (!key) {
       throw new Error('Stripe publishable key is missing.')
     }
@@ -33,13 +24,16 @@ export class PaymentService extends ApiStateService {
   }
 
   async createIntent(invoice) {
-    return this.api.post('/payments', { invoice }, { token: this.token() })
+    return this.api.request(API_ENDPOINTS.PAYMENTS_CREATE, {
+      body: { invoice },
+    })
   }
 
   async loadHistory() {
     try {
-      const history = await this.api.get('/payments/history', { token: this.token() })
-      return applyPaymentHistoryState(this.state, history)
+      const history = await this.api.request(API_ENDPOINTS.PAYMENTS_HISTORY)
+      this.state.payment.history = Array.isArray(history) ? history : []
+      return this.state.payment.history
     } catch (error) {
       this.captureError(error, 'Could not load payment history.')
       return []
@@ -52,7 +46,7 @@ export class PaymentService extends ApiStateService {
       const stripe = await this.stripe()
       const paymentRequest = stripe.paymentRequest({
         country: invoice.countryCode || 'DE',
-        currency: asLowerText(invoice.currency || 'EUR'),
+        currency: String(invoice.currency || 'EUR').toLowerCase(),
         total: {
           label: invoice.merchantName || 'Invoice payment',
           amount: invoice.amountMinor,
@@ -62,7 +56,14 @@ export class PaymentService extends ApiStateService {
       })
 
       const wallet = await paymentRequest.canMakePayment()
-      applyWalletAvailabilityState(this.state, wallet)
+      this.state.payment.walletAvailable = Boolean(wallet)
+      this.state.payment.walletLabel = wallet?.applePay
+        ? 'Apple Pay ready'
+        : wallet?.googlePay
+          ? 'Google Pay ready'
+          : wallet
+            ? 'Supported wallet ready'
+            : ''
 
       return {
         stripe,
@@ -71,26 +72,28 @@ export class PaymentService extends ApiStateService {
       }
     } catch (error) {
       this.captureError(error, 'Unable to initialize Apple Pay.')
-      applyPaymentErrorState(this.state, this.lastError())
+      this.state.payment.error = this.lastError()
       throw error
     }
   }
 
   async confirmWalletPayment({ invoice, paymentMethodId }) {
     this.clearError()
-    beginPaymentState(this.state)
+    this.state.payment.processing = true
+    this.state.payment.error = ''
 
     try {
       const stripe = await this.stripe()
       const intent = await this.createIntent(invoice)
-      applyDemoModeState(this.state, intent.demoMode)
+      this.state.payment.demoMode = Boolean(intent.demoMode)
 
       if (intent.demoMode) {
-        const result = applyPaymentOutcomeState(this.state, {
+        const result = {
           status: 'demo_success',
           message: 'Demo mode completed. Add Stripe keys for a real Apple Pay charge.',
           paymentIntentId: intent.paymentIntentId,
-        })
+        }
+        this.state.payment.lastResult = result
         await this.loadHistory()
         return result
       }
@@ -112,19 +115,20 @@ export class PaymentService extends ApiStateService {
         }
       }
 
-      const result = applyPaymentOutcomeState(this.state, {
+      const result = {
         status: confirmation.paymentIntent?.status || 'succeeded',
         message: 'Payment completed successfully.',
         paymentIntentId: confirmation.paymentIntent?.id || intent.paymentIntentId,
-      })
+      }
+      this.state.payment.lastResult = result
       await this.loadHistory()
       return result
     } catch (error) {
       this.captureError(error, 'Payment failed.')
-      applyPaymentErrorState(this.state, this.lastError())
+      this.state.payment.error = this.lastError()
       throw error
     } finally {
-      finishPaymentState(this.state)
+      this.state.payment.processing = false
     }
   }
 }

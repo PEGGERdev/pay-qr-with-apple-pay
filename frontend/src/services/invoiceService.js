@@ -1,6 +1,5 @@
 import { BaseService } from './baseService'
 import { parseInvoicePayload } from '../models/invoiceParser'
-import { applyParsedInvoiceState, clearInvoiceState } from '../stores/paymentState'
 
 export class InvoiceService extends BaseService {
   constructor(state) {
@@ -12,11 +11,12 @@ export class InvoiceService extends BaseService {
     this.clearError()
     try {
       const invoice = parseInvoicePayload(rawPayload)
-      applyParsedInvoiceState(this.state, {
-        rawPayload,
-        invoice,
-        lastScanAt: new Date().toISOString(),
-      })
+      this.state.invoice.rawPayload = rawPayload
+      this.state.invoice.current = invoice
+      this.state.invoice.lastScanAt = new Date().toISOString()
+      this.state.invoice.parseError = ''
+      this.state.payment.lastResult = null
+      this.state.payment.error = ''
       return invoice
     } catch (error) {
       this.captureError(error, 'Could not parse invoice payload.')
@@ -26,6 +26,11 @@ export class InvoiceService extends BaseService {
   }
 
   clear() {
-    clearInvoiceState(this.state)
+    this.state.invoice.rawPayload = ''
+    this.state.invoice.current = null
+    this.state.invoice.lastScanAt = ''
+    this.state.invoice.parseError = ''
+    this.state.payment.lastResult = null
+    this.state.payment.error = ''
   }
 }

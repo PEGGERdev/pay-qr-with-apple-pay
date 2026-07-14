@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 from repositories.mongo_repository import MongoRepository
-from repositories.repository_registry import get_registered_repository
+
+
+_PAYMENT_REPOSITORY: MongoRepository | None = None
 
 
 def get_payment_attempt_repository() -> MongoRepository:
-    def build_repository() -> MongoRepository:
+    global _PAYMENT_REPOSITORY
+    if _PAYMENT_REPOSITORY is None:
         from models.schemas import PaymentSessionRecord
 
-        return MongoRepository(
+        _PAYMENT_REPOSITORY = MongoRepository(
             collection_name="payment_sessions",
             model_type=PaymentSessionRecord,
             db_name="PayQrPayments",
         )
-    return get_registered_repository("payments.sessions", build_repository)
+    return _PAYMENT_REPOSITORY

@@ -8,7 +8,7 @@ Important: this repository can be made much safer and more production-ready in c
 
 The project follows a modular separation between frontend, backend, and deployment concerns:
 
-- `frontend/` Vue app with `views`, `components`, `stores`, `services`, and `core`
+- `frontend/` Vue app with `features`, `actions`, `views`, `components`, `stores`, `services`, and `core`
 - `backend/` FastAPI app with `api`, `core`, `services`, `repositories`, and `models`
 - `docs/` architecture and setup notes
 - `.env.example` shared environment template
@@ -21,7 +21,6 @@ The project follows a modular separation between frontend, backend, and deployme
 - Mobile-first responsive dashboard with manual paste fallback
 - JWT-based auth flow for protected payment operations
 - Live Stripe PaymentIntent support with demo fallback for local UI work
-- Stripe webhook reconciliation for final payment status updates
 - Production guardrails for JWT, host validation, HTTPS enforcement, and rate limiting
 - CI/CD workflow and containerized deployment assets
 
@@ -62,7 +61,7 @@ npm run dev -- --host 0.0.0.0
 
 - Use `.env.example` for local/demo development.
 - Use `.env.production.example` as the starting point for real Stripe and Apple Pay deployment.
-- Real Apple Pay requires `DEMO_MODE=false`, valid Stripe keys, `STRIPE_WEBHOOK_SECRET`, HTTPS, and a Stripe-verified domain.
+- Real Apple Pay requires `DEMO_MODE=false`, valid Stripe keys, HTTPS, and a Stripe-verified domain.
 - Intended public domains: `pegger.dev` for production and `dev.pegger.dev` for development.
 - Deployed frontend builds consume `VITE_*` values from the server env file at image build time.
 
@@ -76,18 +75,10 @@ npm run dev -- --host 0.0.0.0
 ## Architecture Notes
 
 - Backend auth uses `/auth/register` and `/auth/login`, issues bearer tokens, and protects `/payments` endpoints.
-- Frontend API calls stay in focused services instead of a separate endpoint registry layer.
-- Payment intent creation is routed through a reusable authenticated create router.
-
-## Backend Module Layout
-
-- `backend/api/crud.py` is the stable public facade for the generic router system.
-- `backend/api/crud_base.py` contains the generic CRUD router engine and shared route registration logic.
-- `backend/api/crud_authenticated.py` contains auth-aware router extensions such as authenticated create flows.
-- `backend/api/auth_session_router.py` contains register/login session orchestration in the same generic router style.
-- `backend/api/crud_types.py` and `backend/api/crud_validation.py` hold small supporting dataclasses and validation helpers.
-- `backend/api/crud_factories.py` exposes the router factory helpers used by route modules.
-- `backend/models/schemas.py` remains the compatibility import surface, while `backend/models/auth_schemas.py` and `backend/models/payment_schemas.py` split contracts by domain.
+- Frontend API calls go through an endpoint registry and gateway service instead of hitting URLs ad hoc.
+- Frontend screens, services, and actions are registered through a central feature catalog.
+- Frontend actions are assembled from generic action-definition helpers.
+- Backend features are registered through a central API feature registry and feature-spec builders.
 
 ## Demo Invoice Payload
 

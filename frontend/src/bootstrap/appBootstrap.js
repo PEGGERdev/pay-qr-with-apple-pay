@@ -1,28 +1,34 @@
 import { AppContext } from '../core/context'
+import { collectActionFactories, collectServiceFactories, createFeatureCatalog } from './featureCatalog'
 import { createAppState, persistSession } from '../stores/appState'
-import { clearSessionState } from '../stores/sessionState'
 import { ApiClient } from '../services/apiClient'
-import { AuthService } from '../services/authService'
-import { InvoiceService } from '../services/invoiceService'
-import { PaymentService } from '../services/paymentService'
+import { ApiGatewayService } from '../services/apiGatewayService'
+import { registerUi } from './uiRegistrations'
+import { createScreenRegistry } from '../core/runtimeScreenRegistry'
 
 export function buildAppContext() {
   const state = createAppState()
+  const featureCatalog = createFeatureCatalog()
 
   function handleUnauthorized() {
-    clearSessionState(state)
+    state.session.token = ''
+    state.session.user = null
     persistSession(state)
   }
 
+  const screenRegistry = createScreenRegistry(featureCatalog)
   const ctx = new AppContext({
     state,
+    featureCatalog,
     serviceFactories: {
       apiClient: (ctx) => new ApiClient(ctx.state.config.apiBaseUrl, { onUnauthorized: handleUnauthorized }),
-      authService: (ctx) => new AuthService(ctx.service('apiClient'), ctx.state, { persistSession }),
-      invoice: (ctx) => new InvoiceService(ctx.state),
-      payment: (ctx) => new PaymentService(ctx.service('apiClient'), ctx.state),
+      apiGateway: (ctx) => new ApiGatewayService(ctx.service('apiClient'), ctx.state),
+      ...collectServiceFactories(featureCatalog),
     },
+    actionFactories: collectActionFactories(featureCatalog),
+    screenRegistry,
   })
 
+  registerUi(featureCatalog)
   return ctx
 }
