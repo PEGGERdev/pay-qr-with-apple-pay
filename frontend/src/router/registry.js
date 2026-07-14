@@ -1,14 +1,15 @@
 import RegisteredScreenView from '../views/RegisteredScreenView.vue'
-import { UI_SCREENS } from '../core/uiElements'
-import { ROUTE_PATHS } from './routeSpec'
 
-export function getRoutes() {
+export function getRoutes(featureCatalog) {
+  const routes = featureCatalog.flatMap((feature) => (feature.routeDefinitions || []).map((route) => ({
+    path: route.path,
+    name: route.name,
+    component: RegisteredScreenView,
+    props: { screen: route.screen },
+  })))
+
   return [
-    {
-      path: ROUTE_PATHS.HOME,
-      name: 'home',
-      component: RegisteredScreenView,
-      props: { screen: UI_SCREENS.HOME },
-    },
+    ...routes,
+    { path: '/:pathMatch(.*)*', redirect: '/' },
   ]
 }

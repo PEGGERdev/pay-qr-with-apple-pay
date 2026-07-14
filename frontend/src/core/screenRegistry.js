@@ -25,6 +25,27 @@ export function getScreenLifecycle(screen) {
   return value ? { ...value } : null
 }
 
+export function clearScreenRegistry() {
+  screenRegistry.clear()
+}
+
+export function registerScreenDefinition({ screen, onEnter, slots = {} }) {
+  const module = createScreenModule(screen)
+  module.lifecycle({ onEnter })
+
+  for (const [slot, registrations] of Object.entries(slots)) {
+    for (const registration of registrations || []) {
+      module[slot]?.(registration)
+    }
+  }
+}
+
+export function registerScreenDefinitions(screenDefinitions) {
+  for (const screenDefinition of screenDefinitions) {
+    registerScreenDefinition(screenDefinition)
+  }
+}
+
 export function createScreenModule(screen) {
   ensureScreen(screen)
 

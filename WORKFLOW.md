@@ -161,7 +161,7 @@ The application enables users to pay for invoices by scanning QR codes using the
 
 | Module | Path | Responsibility |
 |--------|------|----------------|
-| Auth Router | `api/auth_session_router.py` | Register/login endpoints |
+| Auth Router | `api/routes/auth.py` | Register/login endpoints |
 | Payment Router | `api/routes/payments.py` | Payment intent, history, webhooks |
 | Auth Service | `services/auth/` | JWT issuing, password hashing |
 | Payment Service | `services/payment/` | Stripe orchestration, webhook handling |
@@ -213,7 +213,7 @@ The application enables users to pay for invoices by scanning QR codes using the
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| HomeView | `views/HomeView.vue` | Main payment screen |
+| RegisteredScreenView | `views/RegisteredScreenView.vue` | Generic registered screen host |
 | PaymentHeroPanel | `components/payment/PaymentHeroPanel.vue` | Hero section, trust signals |
 | AuthCard | `components/payment/AuthCard.vue` | Login/register form |
 | InvoiceScannerCard | `components/payment/InvoiceScannerCard.vue` | QR code scanning |

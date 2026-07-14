@@ -11,6 +11,10 @@ export function registerComponent({ screen, slot, id, order = 100, component, bu
   componentRegistry.set(key, list)
 }
 
+export function clearComponentRegistry() {
+  componentRegistry.clear()
+}
+
 export function getComponents(screen, slot) {
   const key = slotKey(screen, slot)
   const list = componentRegistry.get(key) || []

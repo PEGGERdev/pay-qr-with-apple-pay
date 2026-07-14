@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { Html5Qrcode } from 'html5-qrcode'
 
 const props = defineProps({
+  rawPayload: { type: String, default: '' },
   onScan: { type: Function, required: true },
 })
 
@@ -13,6 +14,14 @@ const scannerError = ref('')
 let scanner = null
 
 const hasPayload = computed(() => Boolean(manualPayload.value.trim()))
+
+watch(
+  () => props.rawPayload,
+  (rawPayload) => {
+    manualPayload.value = rawPayload || ''
+  },
+  { immediate: true },
+)
 
 async function startScanner() {
   scannerError.value = ''

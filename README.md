@@ -8,7 +8,7 @@ Important: this repository can be made much safer and more production-ready in c
 
 The project follows a modular separation between frontend, backend, and deployment concerns:
 
-- `frontend/` Vue app with `views`, `components`, `stores`, `services`, `controllers`, and `core`
+- `frontend/` Vue app with `features`, `actions`, `views`, `components`, `stores`, `services`, and `core`
 - `backend/` FastAPI app with `api`, `core`, `services`, `repositories`, and `models`
 - `docs/` architecture and setup notes
 - `.env.example` shared environment template
@@ -76,7 +76,9 @@ npm run dev -- --host 0.0.0.0
 
 - Backend auth uses `/auth/register` and `/auth/login`, issues bearer tokens, and protects `/payments` endpoints.
 - Frontend API calls go through an endpoint registry and gateway service instead of hitting URLs ad hoc.
-- Payment intent creation is routed through a reusable authenticated create router.
+- Frontend screens, services, and actions are registered through a central feature catalog.
+- Frontend actions are assembled from generic action-definition helpers.
+- Backend features are registered through a central API feature registry and feature-spec builders.
 
 ## Demo Invoice Payload
 

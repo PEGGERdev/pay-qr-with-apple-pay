@@ -1,17 +1,14 @@
 import { AppContext } from '../core/context'
+import { collectActionFactories, collectServiceFactories, createFeatureCatalog } from './featureCatalog'
 import { createAppState, persistSession } from '../stores/appState'
 import { ApiClient } from '../services/apiClient'
 import { ApiGatewayService } from '../services/apiGatewayService'
-import { AuthService } from '../services/authService'
-import { InvoiceService } from '../services/invoiceService'
-import { PaymentService } from '../services/paymentService'
-import { AuthController } from '../controllers/authController'
-import { InvoiceController } from '../controllers/invoiceController'
-import { PaymentController } from '../controllers/paymentController'
 import { registerUi } from './uiRegistrations'
+import { createScreenRegistry } from '../core/runtimeScreenRegistry'
 
 export function buildAppContext() {
   const state = createAppState()
+  const featureCatalog = createFeatureCatalog()
 
   function handleUnauthorized() {
     state.session.token = ''
@@ -19,22 +16,19 @@ export function buildAppContext() {
     persistSession(state)
   }
 
+  const screenRegistry = createScreenRegistry(featureCatalog)
   const ctx = new AppContext({
     state,
+    featureCatalog,
     serviceFactories: {
       apiClient: (ctx) => new ApiClient(ctx.state.config.apiBaseUrl, { onUnauthorized: handleUnauthorized }),
       apiGateway: (ctx) => new ApiGatewayService(ctx.service('apiClient'), ctx.state),
-      authService: (ctx) => new AuthService(ctx.service('apiGateway'), ctx.state),
-      invoice: (ctx) => new InvoiceService(ctx.state),
-      payment: (ctx) => new PaymentService(ctx.service('apiGateway'), ctx.state),
+      ...collectServiceFactories(featureCatalog),
     },
-    controllerFactories: {
-      auth: (ctx) => new AuthController(ctx),
-      invoice: (ctx) => new InvoiceController(ctx),
-      payment: (ctx) => new PaymentController(ctx),
-    },
+    actionFactories: collectActionFactories(featureCatalog),
+    screenRegistry,
   })
 
-  registerUi()
+  registerUi(featureCatalog)
   return ctx
 }

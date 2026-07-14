@@ -9,10 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from api.routes.auth import get_auth_router
-from api.routes.payments import get_payments_router
+from api.feature_registry import build_feature_routers
+from api.features import API_FEATURE_SPECS
 from core.config import app_config
-from core.registry import get_routers
 from repositories.mongo_repository import ping_mongo
 from core.security import SecurityHeadersMiddleware
 
@@ -38,11 +37,8 @@ class Routing:
         if app_config.force_https:
             self._app.add_middleware(HTTPSRedirectMiddleware)
 
-        for router in get_routers():
+        for router in build_feature_routers(API_FEATURE_SPECS):
             self._app.include_router(router)
-
-        self._app.include_router(get_auth_router())
-        self._app.include_router(get_payments_router())
 
         @self._app.get("/health", tags=["Health"])
         def healthcheck(response: Response) -> dict[str, object]:

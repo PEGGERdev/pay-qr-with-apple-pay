@@ -7,7 +7,7 @@ import './style.css'
 
 const appCtx = buildAppContext()
 const app = createApp(App)
-const router = createAppRouter()
+const router = createAppRouter(appCtx.featureCatalog)
 
 app.provide(APP_CTX_KEY, appCtx)
 app.use(router)

@@ -1,10 +1,12 @@
 export class AppContext {
-  constructor({ state, serviceFactories, controllerFactories }) {
+  constructor({ state, serviceFactories, actionFactories, featureCatalog, screenRegistry }) {
     this.state = state
     this._serviceFactories = serviceFactories
-    this._controllerFactories = controllerFactories
+    this._actionFactories = actionFactories
     this._services = new Map()
-    this._controllers = new Map()
+    this._actions = new Map()
+    this.featureCatalog = featureCatalog
+    this.screenRegistry = screenRegistry
   }
 
   service(id) {
@@ -18,14 +20,14 @@ export class AppContext {
     return this._services.get(id)
   }
 
-  controller(id) {
-    if (!this._controllers.has(id)) {
-      const factory = this._controllerFactories[id]
+  action(id) {
+    if (!this._actions.has(id)) {
+      const factory = this._actionFactories[id]
       if (!factory) {
-        throw new Error(`Unknown controller_id: ${id}`)
+        throw new Error(`Unknown action_id: ${id}`)
       }
-      this._controllers.set(id, factory(this))
+      this._actions.set(id, factory(this))
     }
-    return this._controllers.get(id)
+    return this._actions.get(id)
   }
 }
